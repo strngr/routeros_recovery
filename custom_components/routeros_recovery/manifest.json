@@ -1,9 +1,9 @@
 {
   "domain": "routeros_recovery",
   "name": "RouterOS Recovery",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "documentation": "https://example.local",
-  "requirements": ["librouteros==3.2.1", "paramiko==3.4.0"],
+  "requirements": [],
   "codeowners": [],
   "config_flow": true,
   "iot_class": "local_push"
