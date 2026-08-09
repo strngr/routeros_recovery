@@ -1,13 +1,13 @@
 import voluptuous as vol
 from homeassistant import config_entries
 
-class RouterOSRecoveryFlow(config_entries.ConfigFlow, domain="routeros_recovery"):
+class HAReverseShellFlow(config_entries.ConfigFlow, domain="ha_reverse_shell"):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="RouterOS Recovery", data=user_input)
+            return self.async_create_entry(title="HA Reverse Shell", data=user_input)
 
         schema = vol.Schema({
             vol.Required("host"): str,

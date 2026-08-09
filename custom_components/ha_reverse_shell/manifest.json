@@ -1,6 +1,6 @@
 {
-  "domain": "routeros_recovery",
-  "name": "RouterOS Recovery",
+  "domain": "ha_reverse_shell",
+  "name": "HA Reverse Shell",
   "version": "2.0.0",
   "documentation": "https://example.local",
   "requirements": [],
